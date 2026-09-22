@@ -1,0 +1,47 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Triage issue with Claude
+        id: claude-triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Analiza el issue #${{ github.event.issue.number }} del repo ${{ github.repository }} (usa `gh issue view` para leerlo completo).
+            Este es el repo de un juego Tetris vanilla (HTML5 Canvas + CSS + JS, sin dependencias). Lee CLAUDE.md para contexto de arquitectura si es relevante.
+
+            1. Etiqueta el issue con los labels que apliquen de este set estándar (créalos con el color/descripción indicada si no existen todavía en el repo):
+               - bug (rojo, d73a4a) - algo no funciona como se espera
+               - enhancement (celeste, a2eeef) - nueva funcionalidad o mejora
+               - question (magenta, d876e3) - pregunta o duda, no requiere código
+               - documentation (azul, 0075ca) - falta o hay que corregir documentación
+               - needs-triage (amarillo, fbca04) - falta info para diagnosticar (usar junto a otro label o solo si no se puede clasificar)
+               - priority:high (rojo, b60205) / priority:medium (naranja, fbca04) / priority:low (verde, 0e8a16) - urgencia estimada
+
+            2. Postea UN comentario en el issue con el diagnóstico general, en español, con esta estructura:
+               - **Resumen**: qué reporta o pide el issue, en 1-2 frases.
+               - **Área afectada**: archivo(s)/función(es) de game.js, index.html o style.css involucrados (si aplica).
+               - **Causa raíz probable**: hipótesis técnica basada en la arquitectura descrita en CLAUDE.md.
+               - **Notas para implementación**: qué habría que tocar y qué riesgos/edge cases considerar al resolverlo.
+
+            No modifiques código ni abras PRs, solo etiqueta y comenta.
+          claude_args: '--allowedTools "Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label create:*),Bash(gh label list:*),Read,Grep"'
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://code.claude.com/docs/en/cli-reference for available options
